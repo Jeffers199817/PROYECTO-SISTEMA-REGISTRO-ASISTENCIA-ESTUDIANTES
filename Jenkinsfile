@@ -1,4 +1,4 @@
-// Jenkinsfile - Versión 4 (Corrección Final)
+// Jenkinsfile - Versión Final Definitiva
 pipeline {
     agent any
 
@@ -22,27 +22,26 @@ pipeline {
             script {
                 def contextName = "continuous-integration/jenkins"
                 def buildResult = currentBuild.currentResult
-                def githubState = 'pending'
-                def githubMessage = ''
+                
+                // =======================================================
+                // ¡LA CORRECCIÓN CRÍTICA ESTÁ AQUÍ!
+                // Los estados deben estar en MAYÚSCULAS.
+                // =======================================================
+                def githubState
+                def githubMessage
 
                 if (buildResult == 'SUCCESS') {
-                    githubState = 'success'
+                    githubState = 'SUCCESS' // <-- ANTES: 'success'
                     githubMessage = '¡El build ha finalizado con éxito!'
-                } else if (buildResult == 'UNSTABLE') {
-                    githubState = 'failure'
-                    githubMessage = 'El build es inestable (ej: tests con fallos).'
-                } else {
-                    githubState = 'failure'
-                    githubMessage = 'El build ha fallado.'
+                } else { // UNSTABLE, FAILURE, ABORTED
+                    githubState = 'FAILURE' // <-- ANTES: 'failure'
+                    githubMessage = 'El build ha fallado o es inestable.'
                 }
 
                 echo "Build finalizado con resultado: ${buildResult}. Reportando '${githubState}' a GitHub."
 
-                // =======================================================
-                // ¡AQUÍ ESTÁ LA CORRECCIÓN! Cambiamos 'status' por 'state'
-                // =======================================================
                 setGitHubPullRequestStatus(
-                    state: githubState,  // <-- ESTA ES LA LÍNEA CORREGIDA
+                    state: githubState,
                     context: contextName,
                     message: githubMessage
                 )
