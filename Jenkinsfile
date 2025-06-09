@@ -1,4 +1,4 @@
-// Jenkinsfile - Versión 2 (más robusta)
+// Jenkinsfile - Versión 3 (Final para Job de tipo "Pipeline")
 pipeline {
     agent any
 
@@ -7,50 +7,51 @@ pipeline {
             steps {
                 echo 'Simulando la compilación del proyecto...'
                 // Aquí van tus comandos de compilación
-                // sh 'npm install'
             }
         }
         stage('Test') {
             steps {
                 echo 'Simulando la ejecución de pruebas...'
                 // Aquí van tus comandos de prueba
-                // sh 'npm test'
             }
         }
     }
 
-    // El bloque 'post' se ejecuta DESPUÉS de todas las stages.
-    // Aquí es donde reportaremos el estado a GitHub.
     post {
         always {
             script {
                 // Definimos el nombre del status check.
-                // DEBE SER EL MISMO que pongas en la regla de protección de rama.
                 def contextName = "continuous-integration/jenkins"
 
-                // Verificamos el resultado del build actual y reportamos.
-                if (currentBuild.currentResult == 'SUCCESS') {
-                    echo "Build exitoso. Reportando 'SUCCESS' a GitHub."
-                    updateGitCommitStatus(
-                        state: 'SUCCESS',
-                        context: contextName,
-                        message: 'El build ha finalizado con éxito.'
-                    )
-                } else if (currentBuild.currentResult == 'UNSTABLE') {
-                    echo "Build inestable. Reportando 'FAILURE' a GitHub."
-                    updateGitCommitStatus(
-                        state: 'FAILURE',
-                        context: contextName,
-                        message: 'El build es inestable (ej: tests con fallos).'
-                    )
-                } else { // FAILURE, ABORTED, etc.
-                    echo "Build fallido. Reportando 'FAILURE' a GitHub."
-                    updateGitCommitStatus(
-                        state: 'FAILURE',
-                        context: contextName,
-                        message: 'El build ha fallado.'
-                    )
+                // Usamos la variable 'currentBuild.currentResult' para determinar el estado.
+                // SUCCESS, UNSTABLE, FAILURE, etc.
+                def buildResult = currentBuild.currentResult
+                
+                // Mapeamos el resultado de Jenkins a un estado que GitHub entienda.
+                // GitHub usa: success, failure, error, pending.
+                def githubState = 'pending' // Estado por defecto
+                def githubMessage = ''
+
+                if (buildResult == 'SUCCESS') {
+                    githubState = 'success'
+                    githubMessage = '¡El build ha finalizado con éxito!'
+                } else if (buildResult == 'UNSTABLE') {
+                    githubState = 'failure' // Unstable se considera un fallo para el PR
+                    githubMessage = 'El build es inestable (ej: tests con fallos).'
+                } else { // FAILURE, ABORTED
+                    githubState = 'failure'
+                    githubMessage = 'El build ha fallado.'
                 }
+
+                echo "Build finalizado con resultado: ${buildResult}. Reportando '${githubState}' a GitHub."
+
+                // ¡ESTA ES LA LÍNEA CORREGIDA!
+                // Usamos el método que sí está disponible en este contexto.
+                setGitHubPullRequestStatus(
+                    status: githubState,
+                    context: contextName,
+                    message: githubMessage
+                )
             }
         }
     }
