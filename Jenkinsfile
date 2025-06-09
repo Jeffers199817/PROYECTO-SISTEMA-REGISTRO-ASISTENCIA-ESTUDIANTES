@@ -1,39 +1,57 @@
-// Jenkinsfile
+// Jenkinsfile - Versión 2 (más robusta)
 pipeline {
-    agent any // Ejecutar en cualquier agente disponible
-
-    // Esta opción es CLAVE. Define el nombre del status check que verás en GitHub.
-    options {
-        buildStatus(context: "continuous-integration/jenkins") 
-    }
+    agent any
 
     stages {
         stage('Build') {
             steps {
                 echo 'Simulando la compilación del proyecto...'
-                // REEMPLAZA ESTO con tu comando real. Ejemplos:
-                // sh 'mvn clean install'   // Para proyectos Java con Maven
-                // sh 'npm install'         // Para proyectos Node.js
+                // Aquí van tus comandos de compilación
+                // sh 'npm install'
             }
         }
         stage('Test') {
             steps {
                 echo 'Simulando la ejecución de pruebas...'
-                // REEMPLAZA ESTO con tu comando de pruebas. Ejemplos:
-                // sh 'mvn test'
+                // Aquí van tus comandos de prueba
                 // sh 'npm test'
             }
         }
     }
-    
+
+    // El bloque 'post' se ejecuta DESPUÉS de todas las stages.
+    // Aquí es donde reportaremos el estado a GitHub.
     post {
-        // Jenkins reporta el estado automáticamente gracias al plugin,
-        // pero esto es útil para ver mensajes en la consola de Jenkins.
-        success {
-            echo "¡Todo salió bien! El status check en GitHub será 'success'."
-        }
-        failure {
-            echo "¡Algo falló! El status check en GitHub será 'failure'."
+        always {
+            script {
+                // Definimos el nombre del status check.
+                // DEBE SER EL MISMO que pongas en la regla de protección de rama.
+                def contextName = "continuous-integration/jenkins"
+
+                // Verificamos el resultado del build actual y reportamos.
+                if (currentBuild.currentResult == 'SUCCESS') {
+                    echo "Build exitoso. Reportando 'SUCCESS' a GitHub."
+                    updateGitCommitStatus(
+                        state: 'SUCCESS',
+                        context: contextName,
+                        message: 'El build ha finalizado con éxito.'
+                    )
+                } else if (currentBuild.currentResult == 'UNSTABLE') {
+                    echo "Build inestable. Reportando 'FAILURE' a GitHub."
+                    updateGitCommitStatus(
+                        state: 'FAILURE',
+                        context: contextName,
+                        message: 'El build es inestable (ej: tests con fallos).'
+                    )
+                } else { // FAILURE, ABORTED, etc.
+                    echo "Build fallido. Reportando 'FAILURE' a GitHub."
+                    updateGitCommitStatus(
+                        state: 'FAILURE',
+                        context: contextName,
+                        message: 'El build ha fallado.'
+                    )
+                }
+            }
         }
     }
 }
