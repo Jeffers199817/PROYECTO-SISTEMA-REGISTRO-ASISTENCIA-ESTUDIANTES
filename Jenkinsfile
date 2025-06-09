@@ -1,4 +1,4 @@
-// Jenkinsfile - Versión 3 (Final para Job de tipo "Pipeline")
+// Jenkinsfile - Versión 4 (Corrección Final)
 pipeline {
     agent any
 
@@ -20,35 +20,29 @@ pipeline {
     post {
         always {
             script {
-                // Definimos el nombre del status check.
                 def contextName = "continuous-integration/jenkins"
-
-                // Usamos la variable 'currentBuild.currentResult' para determinar el estado.
-                // SUCCESS, UNSTABLE, FAILURE, etc.
                 def buildResult = currentBuild.currentResult
-                
-                // Mapeamos el resultado de Jenkins a un estado que GitHub entienda.
-                // GitHub usa: success, failure, error, pending.
-                def githubState = 'pending' // Estado por defecto
+                def githubState = 'pending'
                 def githubMessage = ''
 
                 if (buildResult == 'SUCCESS') {
                     githubState = 'success'
                     githubMessage = '¡El build ha finalizado con éxito!'
                 } else if (buildResult == 'UNSTABLE') {
-                    githubState = 'failure' // Unstable se considera un fallo para el PR
+                    githubState = 'failure'
                     githubMessage = 'El build es inestable (ej: tests con fallos).'
-                } else { // FAILURE, ABORTED
+                } else {
                     githubState = 'failure'
                     githubMessage = 'El build ha fallado.'
                 }
 
                 echo "Build finalizado con resultado: ${buildResult}. Reportando '${githubState}' a GitHub."
 
-                // ¡ESTA ES LA LÍNEA CORREGIDA!
-                // Usamos el método que sí está disponible en este contexto.
+                // =======================================================
+                // ¡AQUÍ ESTÁ LA CORRECCIÓN! Cambiamos 'status' por 'state'
+                // =======================================================
                 setGitHubPullRequestStatus(
-                    status: githubState,
+                    state: githubState,  // <-- ESTA ES LA LÍNEA CORREGIDA
                     context: contextName,
                     message: githubMessage
                 )
